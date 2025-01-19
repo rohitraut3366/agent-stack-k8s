@@ -11,4 +11,4 @@ builds:
   - -s
   - -w
   - -extldflags "-static"
-  - -X github.com/buildkite/agent-stack-k8s/v2/internal/version.version={{.Env.VERSION}}
+  - -X github.com/buildkite/agent-stack-k8s/v2/internal/version.version=0.21.0

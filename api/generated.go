@@ -1642,7 +1642,7 @@ fragment Build on Build {
 	id
 	number
 	state
-	jobs(first: 100) {
+	jobs(first: 500) {
 		edges {
 			node {
 				__typename
@@ -1738,7 +1738,7 @@ fragment Build on Build {
 	id
 	number
 	state
-	jobs(first: 100) {
+	jobs(first: 500) {
 		edges {
 			node {
 				__typename
@@ -1805,7 +1805,7 @@ fragment Build on Build {
 	id
 	number
 	state
-	jobs(first: 100) {
+	jobs(first: 500) {
 		edges {
 			node {
 				__typename
@@ -1937,7 +1937,7 @@ const GetScheduledJobs_Operation = `
 query GetScheduledJobs ($slug: ID!, $agentQueryRules: [String!]) {
 	organization(slug: $slug) {
 		id
-		jobs(state: [SCHEDULED], type: [COMMAND], first: 100, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, clustered: false) {
+		jobs(state: [SCHEDULED], type: [COMMAND], first: 500, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, clustered: false) {
 			count
 			edges {
 				node {
@@ -1995,7 +1995,7 @@ const GetScheduledJobsClustered_Operation = `
 query GetScheduledJobsClustered ($slug: ID!, $agentQueryRules: [String!], $cluster: ID!) {
 	organization(slug: $slug) {
 		id
-		jobs(state: [SCHEDULED], type: [COMMAND], first: 100, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, cluster: $cluster) {
+		jobs(state: [SCHEDULED], type: [COMMAND], first: 250, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, cluster: $cluster) {
 			count
 			edges {
 				node {
