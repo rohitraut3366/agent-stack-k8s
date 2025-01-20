@@ -1944,7 +1944,11 @@ const GetScheduledJobs_Operation = `
 query GetScheduledJobs($slug: ID!, $agentQueryRules: [String!], $after: String) {
   organization(slug: $slug) {
     id
+<<<<<<< Updated upstream
     jobs(state: [SCHEDULED], type: [COMMAND], first: 100, after: $after, agentQueryRules: $agentQueryRules) {
+=======
+    jobs(state: [SCHEDULED], type: [COMMAND], first: 500, after: $after, agentQueryRules: $agentQueryRules) {
+>>>>>>> Stashed changes
       count
       edges {
         node {
@@ -1988,7 +1992,11 @@ func GetScheduledJobs(
 		Variables: &map[string]interface{}{
 			"slug":            slug,
 			"agentQueryRules": agentQueryRules,
+<<<<<<< Updated upstream
 			"first":           100,  // Fetch up to 100 jobs per page
+=======
+			"first":           500,  // Fetch up to 100 jobs per page
+>>>>>>> Stashed changes
 		},
 	}
 
@@ -2031,7 +2039,11 @@ func GetScheduledJobs(
 			Variables: &map[string]interface{}{
 				"slug":            slug,
 				"agentQueryRules": agentQueryRules,
+<<<<<<< Updated upstream
 				"first":           100,  // Fetch up to 100 jobs per page
+=======
+				"first":           500,  // Fetch up to 100 jobs per page
+>>>>>>> Stashed changes
 				"after":           *cursor, // Pass the cursor for pagination
 			},
 		}
