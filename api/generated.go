@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"log"
 
 	"github.com/Khan/genqlient/graphql"
 )
@@ -1019,6 +1020,12 @@ func (v *GetScheduledJobsOrganization) GetJobs() GetScheduledJobsOrganizationJob
 type GetScheduledJobsOrganizationJobsJobConnection struct {
 	Count int                                                         `json:"count"`
 	Edges []GetScheduledJobsOrganizationJobsJobConnectionEdgesJobEdge `json:"edges"`
+	PageInfo PageInfo                                                 `json:"pageInfo"`
+}
+
+type PageInfo struct {
+	HasNextPage bool `json:"hasNextPage"`
+	EndCursor   *string `json:"endCursor"`
 }
 
 // GetCount returns GetScheduledJobsOrganizationJobsJobConnection.Count, and is useful for accessing the field via an interface.
@@ -1934,31 +1941,37 @@ func GetOrganization(
 
 // The query or mutation executed by GetScheduledJobs.
 const GetScheduledJobs_Operation = `
-query GetScheduledJobs ($slug: ID!, $agentQueryRules: [String!]) {
-	organization(slug: $slug) {
-		id
-		jobs(state: [SCHEDULED], type: [COMMAND], first: 100, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, clustered: false) {
-			count
-			edges {
-				node {
-					__typename
-					... Job
-				}
-			}
-		}
-	}
+query GetScheduledJobs($slug: ID!, $agentQueryRules: [String!], $after: String) {
+  organization(slug: $slug) {
+    id
+    jobs(state: [SCHEDULED], type: [COMMAND], first: 500, after: $after, agentQueryRules: $agentQueryRules) {
+      count
+      edges {
+        node {
+          __typename
+          ...Job
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
 }
+
 fragment Job on Job {
-	... on JobTypeCommand {
-		... CommandJob
-	}
+  ... on JobTypeCommand {
+    ...CommandJob
+  }
 }
+
 fragment CommandJob on JobTypeCommand {
-	uuid
-	env
-	scheduledAt
-	agentQueryRules
-	command
+  uuid
+  env
+  scheduledAt
+  agentQueryRules
+  command
 }
 `
 
@@ -1968,14 +1981,17 @@ func GetScheduledJobs(
 	slug string,
 	agentQueryRules []string,
 ) (*GetScheduledJobsResponse, error) {
+
 	req_ := &graphql.Request{
 		OpName: "GetScheduledJobs",
 		Query:  GetScheduledJobs_Operation,
-		Variables: &__GetScheduledJobsInput{
-			Slug:            slug,
-			AgentQueryRules: agentQueryRules,
+		Variables: &map[string]interface{}{
+			"slug":            slug,
+			"agentQueryRules": agentQueryRules,
+			"first":           500,  // Fetch up to 100 jobs per page
 		},
 	}
+
 	var err_ error
 
 	var data_ GetScheduledJobsResponse
@@ -1986,6 +2002,63 @@ func GetScheduledJobs(
 		req_,
 		resp_,
 	)
+	
+	log.Printf("data_: %v", data_.Organization.Jobs)	
+	
+	log.Printf("data_: %v", data_.Organization.Jobs.PageInfo)
+
+	hasNextPage := data_.Organization.Jobs.PageInfo.HasNextPage
+
+	log.Printf("hasNextPage: %v", hasNextPage)
+
+	if !hasNextPage {
+		return &data_, err_
+	}
+
+	cursor := data_.Organization.Jobs.PageInfo.EndCursor
+		
+	log.Printf("cursor: %v", *cursor)
+
+	for hasNextPage {
+		if cursor == nil {
+			log.Println("Cursor is nil, ending pagination.")
+			break
+		}
+
+		req_ := &graphql.Request{
+			OpName: "GetScheduledJobs",
+			Query:  GetScheduledJobs_Operation,
+			Variables: &map[string]interface{}{
+				"slug":            slug,
+				"agentQueryRules": agentQueryRules,
+				"first":           500,  // Fetch up to 100 jobs per page
+				"after":           *cursor, // Pass the cursor for pagination
+			},
+		}
+		
+		var tempResp GetScheduledJobsResponse
+
+		resp_ := &graphql.Response{Data: &tempResp}
+
+		err_ = client_.MakeRequest(ctx_, req_, resp_)
+		
+		if err_ != nil {
+			log.Printf("Error making paginated request: %v", err_)
+			return nil, err_
+		}
+		
+		log.Printf("tempResp: %v", tempResp.Organization.Jobs)	
+	
+		log.Printf("tempResp: %v", tempResp.Organization.Jobs.PageInfo)
+
+		hasNextPage = tempResp.Organization.Jobs.PageInfo.HasNextPage
+
+		log.Printf("hasNextPage: %v", hasNextPage)
+
+		data_.Organization.Jobs.Edges = append(data_.Organization.Jobs.Edges, tempResp.Organization.Jobs.Edges...)
+		
+		cursor = tempResp.Organization.Jobs.PageInfo.EndCursor
+	}
 
 	return &data_, err_
 }
@@ -1995,7 +2068,7 @@ const GetScheduledJobsClustered_Operation = `
 query GetScheduledJobsClustered ($slug: ID!, $agentQueryRules: [String!], $cluster: ID!) {
 	organization(slug: $slug) {
 		id
-		jobs(state: [SCHEDULED], type: [COMMAND], first: 100, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, cluster: $cluster) {
+		jobs(state: [SCHEDULED], type: [COMMAND], first: 250, order: RECENTLY_ASSIGNED, agentQueryRules: $agentQueryRules, cluster: $cluster) {
 			count
 			edges {
 				node {

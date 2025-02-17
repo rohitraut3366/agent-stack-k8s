@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/buildkite/agent-stack-k8s/v2/cmd/linter"
 	"github.com/buildkite/agent-stack-k8s/v2/cmd/version"
@@ -235,6 +236,19 @@ var (
 	trans, _ = uni.GetTranslator("en")
 )
 
+func getEnvAsInt(key string, defaultValue int) int {
+	valStr := os.Getenv(key)
+	if valStr == "" {
+		return defaultValue
+	}
+	val, err := strconv.Atoi(valStr)
+	if err != nil {
+		log.Printf("Invalid value for %s: %v. Using default: %d", key, err, defaultValue)
+		return defaultValue
+	}
+	return val
+}
+
 func New() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "agent-stack-k8s",
@@ -269,6 +283,11 @@ func New() *cobra.Command {
 			logger.Info("configuration loaded", zap.Object("config", cfg))
 
 			clientConfig := restconfig.GetConfigOrDie()
+
+			clientConfig.QPS = float32(getEnvAsInt("K8S_CLIENT_QPS", 50))
+
+			clientConfig.Burst = getEnvAsInt("K8S_CLIENT_BURST", 100)
+
 			k8sClient, err := kubernetes.NewForConfig(clientConfig)
 			if err != nil {
 				logger.Error("failed to create clientset", zap.Error(err))
