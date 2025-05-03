@@ -1028,7 +1028,7 @@ func (w *worker) createWorkspaceSetupContainer(podSpec *corev1.PodSpec, workspac
 		Image:           w.cfg.Image,
 		ImagePullPolicy: coalesce(w.cfg.DefaultImagePullPolicy, defaultPullPolicyForImage(w.defaultImageRef)),
 		Command:         []string{"ash"},
-		Args:            []string{"-cefx", containerArgs.String()},
+		Args:            []string{"-cefx", fmt.Sprintf("%ssleep 2", containerArgs.String())},
 		SecurityContext: securityContext,
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      workspaceVolume.Name,
